@@ -1,5 +1,4 @@
-Renders/*
-HDR/*
+SupportFiles/*
 *.psd
 *.blend1
-
+node_modules
