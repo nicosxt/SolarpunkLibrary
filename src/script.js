@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import * as dat from 'lil-gui'
-import { AdditiveAnimationBlendMode, Mesh, Texture } from 'three'
+import { AdditiveAnimationBlendMode, Mesh, Texture, Vector3 } from 'three'
 
 
 const gui = new dat.GUI();
@@ -78,7 +78,7 @@ window.addEventListener('resize', () =>
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.01, 2000)
 camera.position.set(2, 2, 2)
 scene.add(camera)
 
@@ -86,7 +86,6 @@ scene.add(camera)
 const controls = new OrbitControls(camera, canvas)
 controls.target.set(0, 0.75, 0)
 controls.enableDamping = true
-
 
 /**
  * Textures
@@ -122,31 +121,163 @@ const heightTexture = textureLoader.load('/textures/stone_height.jpg')
 /**
  * Object
  */
-
 const material = new THREE.MeshStandardMaterial()
 material.metalness = 0.7
 material.roughness = 0.2
 gui.add(material, 'metalness', 0, 1, 0.01);
 gui.add(material, 'roughness', 0, 1, 0.01);
 
+
 const sphereGeometry = new THREE.Mesh(
     new THREE.SphereGeometry(0.5, 16, 16), material
 )
 sphereGeometry.position.x = -1.5
-const planeGeometry = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1, 100, 100), material
-)
+
+// const boxGeometry = new THREE.Mesh(
+// new THREE.BoxGeometry(0.1,0.1,0.1), skyboxMat
+// )
 
 const torusGeometry = new THREE.Mesh(
     new THREE.TorusGeometry(0.3, 0.2, 16, 32), material
 )
 torusGeometry.position.x = 1.5
-const meshes = [sphereGeometry, planeGeometry, torusGeometry];
+const meshes = [sphereGeometry, torusGeometry];
 meshes.forEach(mesh => {
     mesh.position.y = 1
 })
 
-scene.add(sphereGeometry, planeGeometry, torusGeometry);
+// scene.add(sphereGeometry, torusGeometry);
+
+
+
+/**
+ * Imported Models
+ */
+const dracoLoader = new DRACOLoader()
+dracoLoader.setDecoderPath('/draco/')
+
+const gltfLoader = new GLTFLoader()
+gltfLoader.setDRACOLoader(dracoLoader)
+ 
+let skyboxObject;
+gltfLoader.load('/models/skybox_cylinder.glb',(gltf) =>
+    {
+        console.log(gltf);
+
+        //iterate over each child of the scene + set materials
+        gltf.scene.traverse(( obj ) => {
+            if(obj instanceof THREE.Mesh){
+                skyboxObject = obj
+                console.log(obj);
+            }
+        });
+
+        const skyGradient = textureLoader.load('/textures/gradient.jpg')
+        const material3 = new THREE.MeshBasicMaterial( {
+            map: skyGradient
+          } );
+
+          skyboxObject.material = material3;
+          console.log(skyboxObject.scale);
+          skyboxObject.scale.set(100,100,100);
+
+        scene.add(gltf.scene);
+
+    },
+    (progress) =>
+    {
+       //console.log(progress)
+    },
+    (error) =>
+    {
+       console.log(error)
+    }
+)
+
+let cabin1 = [];
+let cabin2 = [];
+let tinybox = [];
+let jupe = [];
+let allObjects = [cabin1, cabin2, tinybox, jupe];
+gltfLoader.load('/models/objects_platform.gltf',(gltf) =>
+    {
+        //iterate over each child of the scene + set materials
+        gltf.scene.traverse(( obj ) => {
+            if(obj instanceof THREE.Mesh){
+                if(obj.name.includes("Cabin01")){
+                    cabin1.push(obj);
+                }else if(obj.name.includes("Cabin02")){
+                    cabin2.push(obj);
+                }else if(obj.name.includes("TinyBox")){
+                    tinybox.push(obj);
+                }else if(obj.name.includes("JUPE")){
+                    jupe.push(obj);
+                }
+            }
+        });
+
+        setVisibilityofArray(cabin2, false);
+        setVisibilityofArray(tinybox, false);
+        setVisibilityofArray(jupe, false);
+
+        scene.add(gltf.scene);
+    },
+    (progress) =>
+    {
+       //console.log(progress)
+    },
+    (error) =>
+    {
+       console.log(error)
+    }
+)
+
+
+function setVisibilityofArray(arrayObj, visible){
+    arrayObj.forEach(obj => {
+        console.log(obj.name + " is " + visible);
+        obj.visible = visible;
+    });
+}
+
+
+/**
+ * KeyPress
+ */
+let visibleIndex = 0;
+document.addEventListener('keydown', (event) => {
+    switch (event.keyCode) {
+      case 37: // left arrow
+        // Handle left arrow key press
+        console.log("left");
+
+        incrementIndex(false);
+        for(let i = 0; i < allObjects.length; i++){
+            setVisibilityofArray(allObjects[i], (i == visibleIndex));
+        }
+
+
+        break;
+      case 39: // right arrow
+        // Handle right arrow key press
+        console.log("right");
+
+        incrementIndex(true);
+        for(let i = 0; i < allObjects.length; i++){
+            setVisibilityofArray(allObjects[i], (i == visibleIndex));
+        }
+        break;
+    }
+  });
+
+function incrementIndex(isPositive){
+    if(isPositive)
+       visibleIndex++;
+    else
+        visibleIndex--;
+
+    visibleIndex = (visibleIndex + allObjects.length) % allObjects.length;
+}
 
 /**
  * Renderer
@@ -158,6 +289,7 @@ renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.outputEncoding = THREE.sRGBEncoding
 
 /**
  * Animate

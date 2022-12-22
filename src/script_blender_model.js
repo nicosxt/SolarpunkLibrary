@@ -25,10 +25,10 @@ const scene = new THREE.Scene()
 //Objects
 const objects = [];
 
-/**
- * Floor
- */
-// const floor = new THREE.Mesh(
+// /**
+//  * Floor
+//  */
+// let floor = new THREE.Mesh(
 //     new THREE.PlaneGeometry(10, 10),
 //     new THREE.MeshStandardMaterial({
 //         color: '#444444',
@@ -37,23 +37,10 @@ const objects = [];
 //     })
 // )
 // floor.receiveShadow = true
-// floor.rotation.x = - Math.PI * 0.5
+// //floor.rotation.x = - Math.PI * 0.5
 // scene.add(floor)
 
-/**
- * Models
- */
-const dracoLoader = new DRACOLoader()
-dracoLoader.setDecoderPath('/draco/')
 
-const gltfLoader = new GLTFLoader()
-gltfLoader.setDRACOLoader(dracoLoader)
-
-
-/**
- * Debug
- */
-const gui = new dat.GUI()
 
 
 
@@ -64,87 +51,121 @@ const gui = new dat.GUI()
  const houseMaterial = new THREE.MeshStandardMaterial({
     color: '#fff200'
 })
+const material1 = new THREE.MeshStandardMaterial( {
+    color: "#8f49d5",
+    roughness: 0.5,
+    metalness: 0.5
+  } );
+const material2 = new THREE.MeshStandardMaterial( {
+    color: "#91d549",
+    roughness: 0.5,
+    metalness: 0.5
+  } );
+const material3 = new THREE.MeshStandardMaterial( {
+    color: "#497fd5",
+    roughness: 0.5,
+    metalness: 0.5
+  } );
+let defaultAlbedoMat;
 
 
-gltfLoader.load('/models/EXP_houses.glb',(gltf) =>
-    {
-        console.log(gltf);
-        //const path = gltf.scene.getObjectByName('EXP_Path');
-        // const water = gltf.scene.getObjectByName('EXP_Water');
-        // const biogas = gltf.scene.getObjectByName('EXP_Biogas');
-        // const house = gltf.scene.getObjectByName('EXP_House');
-        //const forest = gltf.scene.getObjectByName('EXP_forest');
-        //console.log(gltf.scene.children[4].children[0]);
-        
-        //path.setMaterials(houseMaterial);
-        const material1 = new THREE.MeshStandardMaterial( {
-            color: "#8f49d5",
-            roughness: 0.5,
-            metalness: 0.5
-          } );
-        const material2 = new THREE.MeshStandardMaterial( {
-            color: "#91d549",
-            roughness: 0.5,
-            metalness: 0.5
-          } );
-        const material3 = new THREE.MeshStandardMaterial( {
-            color: "#497fd5",
-            roughness: 0.5,
-            metalness: 0.5
-          } );
 
 
-        //iterate over each child of the scene
-        gltf.scene.traverse(( obj ) => {
-            if(obj instanceof THREE.Mesh){
+
+/**
+ * Models
+ */
+ const dracoLoader = new DRACOLoader()
+ dracoLoader.setDecoderPath('/draco/')
+ 
+ const gltfLoader = new GLTFLoader()
+ gltfLoader.setDRACOLoader(dracoLoader)
+  
+let models = [];
+ gltfLoader.load('/models/EXP_all.glb',(gltf) =>
+     {
+         console.log(gltf);
+ 
+         //iterate over each child of the scene + set materials
+         gltf.scene.traverse(( obj ) => {
+             if(obj instanceof THREE.Mesh){
                 console.log(obj.name);
-                if(obj.name == 'EXP_Path'){
-                    obj.material = material1;
-                }
-                if(obj.name == 'EXP_Water'){
-                    obj.material = material2;
-                }
-                if(obj.name == 'EXP_Biogas'){
-                    obj.material = material3;
-                }
-            }
-        });
+                models.push(obj);
+             }
+         });
 
-        
-        //const multiMaterial = new THREE.MeshFaceMaterial([material1, material2, material3]);
-        const multiMaterial = [material1, material2, material3];
+        //iterate textures
 
-        // for ( var i = 0, l = multiMaterial.length; i < l; i ++ ) {
+        // console.log("l " + models.length);
+        // const textureLoader = new THREE.TextureLoader();
+        // const defaultAlbedo = textureLoader.load('/textures/albedo.png',
+        //     ()=>{
+        //         defaultAlbedoMat = new THREE.MeshStandardMaterial({
+        //             map: defaultAlbedo,
+        //             roughness: 0.5,
+        //             metalness: 0.5
+        //         });
 
-		// 	console.log(multiMaterial[i]);
+        //         console.log(models.length);
+        //         for(let i = 0; i < models.length; i++){
+        //             if(models[i].name == "EXP_Solar" || models[i].name == "EXP_Tree"){
+        //                 models[i].material = defaultAlbedoMat;
+        //                 console.log(models[i].name);
+        //             }
+        //         }
+        //         floor.material = defaultAlbedoMat;
+        //         //apply material here
 
-		// }
-
-        // forest.traverse( function (child) {
-        //     //console.log("get " + gltf.scene.children[4].children[0]);
-        //     if ( child instanceof THREE.Mesh ) {
-        //         console.log(child.name);
-        //         child.material = material1;
-        //         //console.log("get " + child.children[4].children[0]);
-        //         //child.children[1].material = material2;
-        //         //child.getObjectByName("Cube_001").material = material1;
         //     }
-    
-        // } );
+        // );
 
-        scene.add(gltf.scene);
-
-
-    },
-    (progress) =>
-    {
+         scene.add(gltf.scene);
+ 
+     },
+     (progress) =>
+     {
         //console.log(progress)
-    },
-    (error) =>
-    {
-        //console.log(error)
-    }
-)
+     },
+     (error) =>
+     {
+        console.log(error)
+     }
+ )
+
+
+/**
+ * Debug
+ */
+const gui = new dat.GUI()
+
+
+
+/**
+ * Textures
+ */
+// const textureLoader = new THREE.TextureLoader();
+// const defaultAlbedo = textureLoader.load('/textures/albedo.png',
+//     ()=>{
+//         defaultAlbedoMat = new THREE.MeshStandardMaterial({
+//             map: defaultAlbedo,
+//             roughness: 0.5,
+//             metalness: 0.5
+//         });
+
+//         console.log(models.length);
+//         for(let i = 0; i < models.length; i++){
+//             if(models[i].name == "EXP_Solar" || models[i].name == "EXP_Tree"){
+//                 models[i].material = defaultAlbedoMat;
+//                 console.log(models[i].name);
+//             }
+//         }
+//         floor.material = defaultAlbedoMat;
+//         //apply material here
+
+//     }
+// );
+
+
 
 
 /**
