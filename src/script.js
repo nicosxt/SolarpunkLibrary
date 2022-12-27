@@ -7,48 +7,31 @@ import * as dat from 'lil-gui'
 import { AdditiveAnimationBlendMode, Mesh, Texture, Vector3 } from 'three'
 
 
-const gui = new dat.GUI();
-
 /**
  * Base
  */
-
-// Canvas
 const canvas = document.querySelector('canvas.webgl')
-
-// Scene
+const gui = new dat.GUI();
 const scene = new THREE.Scene()
-
-/**
- * Floor
- */
-// const floor = new THREE.Mesh(
-//     new THREE.PlaneGeometry(10, 10),
-//     new THREE.MeshStandardMaterial({
-//         color: '#444444',
-//         metalness: 0,
-//         roughness: 0.5
-//     })
-// )
-// floor.receiveShadow = true
-// floor.rotation.x = - Math.PI * 0.5
-// scene.add(floor)
 
 /**
  * Lights
  */
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
-scene.add(ambientLight)
-
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
-directionalLight.castShadow = true
-directionalLight.shadow.mapSize.set(1024, 1024)
-directionalLight.shadow.camera.far = 15
-directionalLight.shadow.camera.left = - 7
-directionalLight.shadow.camera.top = 7
-directionalLight.shadow.camera.right = 7
-directionalLight.shadow.camera.bottom = - 7
-directionalLight.position.set(5, 5, 5)
+function initiateLights(){
+    directionalLight.castShadow = true
+    directionalLight.shadow.mapSize.set(1024, 1024)
+    directionalLight.shadow.camera.far = 15
+    directionalLight.shadow.camera.left = - 7
+    directionalLight.shadow.camera.top = 7
+    directionalLight.shadow.camera.right = 7
+    directionalLight.shadow.camera.bottom = - 7
+    directionalLight.position.set(5, 5, 5)
+}
+initiateLights();
+
+scene.add(ambientLight)
 scene.add(directionalLight)
 
 /**
@@ -78,91 +61,62 @@ window.addEventListener('resize', () =>
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.01, 2000)
-camera.position.set(2, 2, 2)
+const camera = new THREE.PerspectiveCamera(40, sizes.width / sizes.height, 0.01, 2000)
+camera.position.set(22, 14, 22)
 scene.add(camera)
 
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.target.set(0, 0.75, 0)
-controls.enableDamping = true
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.enableZoom = false;
+//controls.enableRotate = true;
 
 /**
  * Textures
  */
-
-//load images
-const loadingManager = new THREE.LoadingManager()
-
-loadingManager.onStart = () =>
-{
-    console.log('onStart')
-}
-loadingManager.onLoad = () =>
-{
-    console.log('onLoad')
-}
-loadingManager.onProgress = () =>
-{
-    console.log('onProgress')
-}
-loadingManager.onError = () =>
-{
-    console.log('onError')
-}
-
 const textureLoader = new THREE.TextureLoader()
-
-const colorTexture = textureLoader.load('/textures/stone_color.jpg')
-const normalTexture = textureLoader.load('/textures/stone_normal.jpg')
-const aoTexture = textureLoader.load('/textures/stone_ao.jpg')
-const heightTexture = textureLoader.load('/textures/stone_height.jpg')
+//const matcapTexture = textureLoader.load('/textures/matcap4.png')
+const objTexture = textureLoader.load('/textures/textures.jpg');
+const plotTextureEmpty = textureLoader.load('/textures/green_frame.png');
+const plotTextureSelected = textureLoader.load('/textures/green.jpg');
+const commonTextureEmpty = textureLoader.load('/textures/white_frame.png');
 
 /**
- * Object
+ * Material
  */
-const material = new THREE.MeshStandardMaterial()
-material.metalness = 0.7
-material.roughness = 0.2
-gui.add(material, 'metalness', 0, 1, 0.01);
-gui.add(material, 'roughness', 0, 1, 0.01);
+const objectMat = new THREE.MeshStandardMaterial({map: objTexture})
+objectMat.metalness = 0.4
+objectMat.roughness = 0.55
+gui.add(objectMat, 'metalness', 0, 1, 0.01);
+gui.add(objectMat, 'roughness', 0, 1, 0.01);
+objectMat.map.flipY = false;
 
+const plotMatEmpty = new THREE.MeshBasicMaterial({map: plotTextureEmpty})
+plotMatEmpty.transparent = true;
+plotMatEmpty.alphaMap = plotTextureEmpty;
+const plotMatSelected = new THREE.MeshBasicMaterial({color: "#07ffa8"})
 
-const sphereGeometry = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 16, 16), material
-)
-sphereGeometry.position.x = -1.5
-
-// const boxGeometry = new THREE.Mesh(
-// new THREE.BoxGeometry(0.1,0.1,0.1), skyboxMat
-// )
-
-const torusGeometry = new THREE.Mesh(
-    new THREE.TorusGeometry(0.3, 0.2, 16, 32), material
-)
-torusGeometry.position.x = 1.5
-const meshes = [sphereGeometry, torusGeometry];
-meshes.forEach(mesh => {
-    mesh.position.y = 1
-})
-
-// scene.add(sphereGeometry, torusGeometry);
-
-
+const commonMat = new THREE.MeshStandardMaterial({map: commonTextureEmpty})
+commonMat.transparent = true;
+commonMat.alphaMap = commonTextureEmpty;
 
 /**
- * Imported Models
+ * Models
  */
 const dracoLoader = new DRACOLoader()
 dracoLoader.setDecoderPath('/draco/')
-
 const gltfLoader = new GLTFLoader()
 gltfLoader.setDRACOLoader(dracoLoader)
- 
+
+/**
+ * Skybox
+ */
 let skyboxObject;
 gltfLoader.load('/models/skybox_cylinder.glb',(gltf) =>
     {
-        console.log(gltf);
+        
 
         //iterate over each child of the scene + set materials
         gltf.scene.traverse(( obj ) => {
@@ -194,32 +148,31 @@ gltfLoader.load('/models/skybox_cylinder.glb',(gltf) =>
     }
 )
 
-let cabin1 = [];
-let cabin2 = [];
-let tinybox = [];
-let jupe = [];
-let allObjects = [cabin1, cabin2, tinybox, jupe];
-gltfLoader.load('/models/objects_platform.gltf',(gltf) =>
+
+//let allObjects = [];
+let houses = [];
+let plots = [];
+gltfLoader.load('/models/objects.gltf',(gltf) =>
     {
         //iterate over each child of the scene + set materials
         gltf.scene.traverse(( obj ) => {
             if(obj instanceof THREE.Mesh){
-                if(obj.name.includes("Cabin01")){
-                    cabin1.push(obj);
-                }else if(obj.name.includes("Cabin02")){
-                    cabin2.push(obj);
-                }else if(obj.name.includes("TinyBox")){
-                    tinybox.push(obj);
-                }else if(obj.name.includes("JUPE")){
-                    jupe.push(obj);
+                if(obj.name.includes("House")){
+                    houses.push(obj);
+                    obj.material = objectMat;
+                }else if(obj.name.includes("Plot")){
+                    plots.push(obj);
+                    obj.material = plotMatEmpty;
+                }else if(obj.name.includes("Common")){
+                    obj.material = commonMat;
                 }
             }
         });
 
-        setVisibilityofArray(cabin2, false);
-        setVisibilityofArray(tinybox, false);
-        setVisibilityofArray(jupe, false);
-
+        for(let i = 0; i < houses.length; i++){
+            //console.log(houses[i]);
+            houses[i].visible = (i == 0);            
+        }
         scene.add(gltf.scene);
     },
     (progress) =>
@@ -232,15 +185,6 @@ gltfLoader.load('/models/objects_platform.gltf',(gltf) =>
     }
 )
 
-
-function setVisibilityofArray(arrayObj, visible){
-    arrayObj.forEach(obj => {
-        console.log(obj.name + " is " + visible);
-        obj.visible = visible;
-    });
-}
-
-
 /**
  * KeyPress
  */
@@ -252,21 +196,18 @@ document.addEventListener('keydown', (event) => {
         console.log("left");
 
         incrementIndex(false);
-        for(let i = 0; i < allObjects.length; i++){
-            setVisibilityofArray(allObjects[i], (i == visibleIndex));
-        }
-
 
         break;
       case 39: // right arrow
         // Handle right arrow key press
         console.log("right");
-
         incrementIndex(true);
-        for(let i = 0; i < allObjects.length; i++){
-            setVisibilityofArray(allObjects[i], (i == visibleIndex));
-        }
         break;
+    }
+    for(let i = 0; i < houses.length; i++){
+        console.log(houses[i]);
+        houses[i].visible = (i == visibleIndex);
+        
     }
   });
 
@@ -276,8 +217,47 @@ function incrementIndex(isPositive){
     else
         visibleIndex--;
 
-    visibleIndex = (visibleIndex + allObjects.length) % allObjects.length;
+    visibleIndex = (visibleIndex + houses.length) % houses.length;
 }
+
+/**
+ * Game Logic
+ */
+let selectedPlot = null;
+document.addEventListener('mouseup', onMouseUp, false);
+function onMouseUp(e){
+    console.log("mouse up");
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const intersects = [];
+    mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+    raycaster.setFromCamera( mouse, camera );
+    raycaster.intersectObjects( scene.children, true, intersects );
+    
+    if(intersects.length > 0){
+        console.log("hit");
+        // console.log(intersects[0].object);
+        intersects.forEach(obj => {
+            console.log(obj);
+            if(obj.object.name.includes("Plot")){
+                selectPlot(obj.object);
+            }
+        });
+    }
+}
+
+function selectPlot(plot){
+
+    //reset last selectPlot
+    if(selectedPlot)
+        selectedPlot.material = plotMatEmpty;
+
+    plot.material = plotMatSelected;
+    selectedPlot = plot;
+
+}
+
 
 /**
  * Renderer
@@ -292,7 +272,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.outputEncoding = THREE.sRGBEncoding
 
 /**
- * Animate
+ * Update
  */
 const clock = new THREE.Clock()
 let previousTime = 0
@@ -302,11 +282,6 @@ const tick = () =>
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - previousTime
     previousTime = elapsedTime
-
-
-    meshes.forEach(mesh => {
-        mesh.rotation.y = 0.2*elapsedTime;
-    })
 
     // Update controls
     controls.update()
